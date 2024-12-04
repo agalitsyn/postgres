@@ -7,8 +7,10 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -123,4 +125,20 @@ func (d *DB) RetryConnect(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+// IsUniqueViolation checks if the error is a unique constraint violation
+// and optionally matches the constraint name
+func IsUniqueViolation(err error, constraintName string) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+	if pgErr.Code != pgerrcode.UniqueViolation {
+		return false
+	}
+	if constraintName == "" {
+		return true
+	}
+	return strings.Contains(pgErr.ConstraintName, constraintName)
 }
