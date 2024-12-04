@@ -6,7 +6,6 @@ import (
 	"io/fs"
 	"log/slog"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/tern/v2/migrate"
 )
 
@@ -16,8 +15,14 @@ func logMigrationProcess(version int32, name, direction, _ string) {
 	slog.Info("migrating", "version", version, "name", name, "direction", direction)
 }
 
-func MigrateUp(ctx context.Context, conn *pgx.Conn, migrationsFiles fs.FS) error {
-	m, err := migrate.NewMigrator(ctx, conn, migrationsTableName)
+func MigrateUp(ctx context.Context, db *DB, migrationsFiles fs.FS) error {
+	conn, err := db.Pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("could not acquire connection: %w", err)
+	}
+	defer conn.Release()
+
+	m, err := migrate.NewMigrator(ctx, conn.Conn(), migrationsTableName)
 	if err != nil {
 		return fmt.Errorf("could not create migrator: %w", err)
 	}
