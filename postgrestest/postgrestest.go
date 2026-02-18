@@ -59,11 +59,7 @@ func setupTestDBWithName(t *testing.T, name string, migrationsFiles fs.FS) (post
 	err = db.Ping(ctx)
 	require.NoError(t, err)
 
-	migrationConn, err := db.Pool.Acquire(ctx)
-	require.NoError(t, err)
-	defer migrationConn.Release()
-
-	err = postgres.MigrateUp(ctx, migrationConn.Conn(), migrationsFiles)
+	err = postgres.MigrateUp(ctx, db, migrationsFiles)
 	require.NoError(t, err)
 
 	teardown := func() {
